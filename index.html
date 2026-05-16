@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>RoForum · Главная</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="logo-link">
+                <span class="logo-text">RoForum</span>
+            </a>
+            <a href="index.html" class="btn-top">Главная</a>
+            <a href="forums.html" class="btn-top">Форумы</a>
+            <a href="forums-top.html" class="btn-top">Топ</a>
+            <a href="rules.html" class="btn-top">Правила</a>
+        </div>
+        <div class="topbar-right" id="authButtons">
+            <a href="login.html" class="btn-top">Войти</a>
+            <a href="register.html" class="btn-top">Регистрация</a>
+        </div>
+        <div class="topbar-right" id="userPanel" style="display:none;">
+            <a href="profile.html" class="btn-top" id="usernameDisplay"></a>
+            <a href="settings-site.html" class="btn-top">Настройки</a>
+            <a href="#" class="btn-top" id="logoutBtn">Выйти</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <a href="forums.html" class="sidebar-item">Форумы</a>
+            <a href="forums-top.html" class="sidebar-item">Топ</a>
+            <a href="settings-site.html" class="sidebar-item">Настройки</a>
+        </aside>
+
+        <main class="content content-centered">
+            <div class="home-header">
+                <h1>RoForum</h1>
+                <p class="home-subtitle">Форум по Roblox — всё об игре в одном месте</p>
+            </div>
+
+            <div class="home-description">
+                <p>
+                    RoForum — крупнейшее русскоязычное сообщество, посвящённое Roblox.
+                    Здесь вы найдёте информацию о разработчиках, администраторах платформы,
+                    обсуждения взломов плейсов, гайды по созданию игр, новости обновлений
+                    и многое другое.
+                </p>
+            </div>
+
+            <p class="member-count" id="memberCount">Загрузка...</p>
+
+            <a href="register.html" class="btn-join">Присоединиться</a>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="1x5oe.js"></script>
+    <script src="1x4oe.js"></script>
+    <script src="1x3oe.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await checkAuth();
+            const authButtons = document.getElementById('authButtons');
+            const userPanel = document.getElementById('userPanel');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (user) {
+                authButtons.style.display = 'none';
+                userPanel.style.display = 'flex';
+                usernameDisplay.textContent = user.username;
+                if (user.role === 'admin' || user.role === 'owner') {
+                    usernameDisplay.textContent += ' ⚔️';
+                }
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const token = localStorage.getItem('session_token');
+                    if (token) {
+                        await supabase.from('sessions').delete().eq('token', token);
+                    }
+                    localStorage.removeItem('session_token');
+                    window.location.href = '/index.html';
+                });
+            }
+
+            const count = await getAccountCount();
+            document.getElementById('memberCount').textContent = `${count} участников`;
+        });
+    </script>
+</body>
+</html>

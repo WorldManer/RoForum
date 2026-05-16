@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>RoForum · Просмотр поста</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="logo-link">
+                <span class="logo-text">RoForum</span>
+            </a>
+            <a href="index.html" class="btn-top">Главная</a>
+            <a href="forums.html" class="btn-top">Форумы</a>
+            <a href="forums-top.html" class="btn-top">Топ</a>
+            <a href="rules.html" class="btn-top">Правила</a>
+        </div>
+        <div class="topbar-right" id="authButtons">
+            <a href="login.html" class="btn-top">Войти</a>
+            <a href="register.html" class="btn-top">Регистрация</a>
+        </div>
+        <div class="topbar-right" id="userPanel" style="display:none;">
+            <a href="profile.html" class="btn-top" id="usernameDisplay"></a>
+            <a href="settings-site.html" class="btn-top">Настройки</a>
+            <a href="#" class="btn-top" id="logoutBtn">Выйти</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <a href="forums.html" class="sidebar-item">Все форумы</a>
+            <a href="forums-top.html" class="sidebar-item">Топ публикаций</a>
+            <a href="create-forum.html" class="sidebar-item">Создать пост</a>
+            <a href="settings-site.html" class="sidebar-item">Настройки</a>
+        </aside>
+
+        <main class="content">
+            <div id="forumContent"></div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="1x5oe.js"></script>
+    <script src="1x4oe.js"></script>
+    <script src="1x3oe.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await checkAuth();
+            const authButtons = document.getElementById('authButtons');
+            const userPanel = document.getElementById('userPanel');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (user) {
+                authButtons.style.display = 'none';
+                userPanel.style.display = 'flex';
+                usernameDisplay.textContent = user.username;
+                if (user.role === 'admin' || user.role === 'owner') {
+                    usernameDisplay.textContent += ' ⚔️';
+                }
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const token = localStorage.getItem('session_token');
+                    if (token) {
+                        await supabase.from('sessions').delete().eq('token', token);
+                    }
+                    localStorage.removeItem('session_token');
+                    window.location.href = '/index.html';
+                });
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const forumId = params.get('id');
+
+            if (!forumId) {
+                document.getElementById('forumContent').innerHTML = '<p>Пост не найден.</p>';
+                return;
+            }
+
+            const forum = await getForumById(forumId);
+            const comments = await getComments(forumId);
+            const likesCount = await getLikesCount(forumId);
+
+            const container = document.getElementById('forumContent');
+
+            let html = `
+                <div class="forum-full">
+                    <h1>${forum.title}</h1>
+                    <p class="forum-meta">
+                        Автор: <a href="profile.html?id=${forum.author_id}">${forum.accounts.username}${forum.accounts.role === 'admin' || forum.accounts.role === 'owner' ? ' ⚔️' : ''}</a>
+                        · ${new Date(forum.created_at).toLocaleDateString('ru-RU')} в ${new Date(forum.created_at).toLocaleTimeString('ru-RU')}
+                    </p>
+                    <div class="forum-content">${forum.content}</div>
+                    ${forum.image_urls && forum.image_urls.length > 0 ? forum.image_urls.map(url => `<img src="${url}" alt="Изображение" style="max-width:100%;margin-top:1rem;">`).join('') : ''}
+                    ${forum.tags && forum.tags.length > 0 ? `<div class="forum-tags">${forum.tags.map(tag => `<span class="tag">#${tag}</span>`).join(' ')}</div>` : ''}
+                    <div class="forum-actions">
+                        <button id="likeBtn">❤️ ${likesCount}</button>
+                        ${user && (user.role === 'admin' || user.role === 'owner') ? `<button id="deleteForumBtn">Удалить пост</button>` : ''}
+                    </div>
+                </div>
+                <div class="comments-section">
+                    <h2>Комментарии</h2>
+                    <div id="commentsList">
+                        ${comments.map(c => `
+                            <div class="comment">
+                                <p class="comment-meta">
+                                    <a href="profile.html?id=${c.author_id}">${c.accounts.username}${c.accounts.role === 'admin' || c.accounts.role === 'owner' ? ' ⚔️' : ''}</a>
+                                    · ${new Date(c.created_at).toLocaleDateString('ru-RU')}
+                                </p>
+                                <p>${c.content}</p>
+                                ${user && (user.role === 'admin' || user.role === 'owner') ? `<button class="deleteCommentBtn" data-id="${c.id}">Удалить</button>` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${user ? `
+                        <div class="add-comment">
+                            <textarea id="commentInput" class="input-field" placeholder="Ваш комментарий..." rows="3"></textarea>
+                            <button id="submitComment" class="btn-register">Отправить</button>
+                        </div>
+                    ` : '<p>Войдите, чтобы оставить комментарий.</p>'}
+                </div>
+            `;
+
+            container.innerHTML = html;
+
+            if (user) {
+                document.getElementById('likeBtn').addEventListener('click', async () => {
+                    const liked = await likeForum(forumId, user.id);
+                    const newCount = await getLikesCount(forumId);
+                    document.getElementById('likeBtn').textContent = `❤️ ${newCount}`;
+                });
+
+                const submitComment = document.getElementById('submitComment');
+                if (submitComment) {
+                    submitComment.addEventListener('click', async () => {
+                        if (checkBanStatus(user)) return;
+                        const content = document.getElementById('commentInput').value.trim();
+                        if (!content) return;
+                        await createComment(forumId, user.id, content);
+                        location.reload();
+                    });
+                }
+            }
+
+            if (user && (user.role === 'admin' || user.role === 'owner')) {
+                const deleteForumBtn = document.getElementById('deleteForumBtn');
+                if (deleteForumBtn) {
+                    deleteForumBtn.addEventListener('click', async () => {
+                        if (confirm('Удалить этот пост?')) {
+                            await deleteForum(forumId);
+                            window.location.href = '/forums.html';
+                        }
+                    });
+                }
+
+                document.querySelectorAll('.deleteCommentBtn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const commentId = btn.getAttribute('data-id');
+                        await deleteComment(commentId);
+                        location.reload();
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

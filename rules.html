@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>RoForum · Правила</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="logo-link">
+                <span class="logo-text">RoForum</span>
+            </a>
+            <a href="index.html" class="btn-top">Главная</a>
+            <a href="forums.html" class="btn-top">Форумы</a>
+            <a href="forums-top.html" class="btn-top">Топ</a>
+            <a href="rules.html" class="btn-top">Правила</a>
+        </div>
+        <div class="topbar-right" id="authButtons">
+            <a href="login.html" class="btn-top">Войти</a>
+            <a href="register.html" class="btn-top">Регистрация</a>
+        </div>
+        <div class="topbar-right" id="userPanel" style="display:none;">
+            <a href="profile.html" class="btn-top" id="usernameDisplay"></a>
+            <a href="settings-site.html" class="btn-top">Настройки</a>
+            <a href="#" class="btn-top" id="logoutBtn">Выйти</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <a href="forums.html" class="sidebar-item">Форумы</a>
+            <a href="settings-site.html" class="sidebar-item">Настройки</a>
+        </aside>
+
+        <main class="content">
+            <div class="rules-header">
+                <h1>Правила</h1>
+                <p class="subtitle">Ознакомьтесь с правилами форума перед публикацией</p>
+            </div>
+
+            <div class="rules-accordion">
+                <div class="rules-accordion-header" data-target="profilesList">
+                    <span class="rules-accordion-title">Профили</span>
+                    <span class="rules-accordion-arrow">+</span>
+                </div>
+                <div class="rules-accordion-body" id="profilesList">
+                    <div class="rule-item">
+                        <span class="rule-number">1.1</span>
+                        <span class="rule-text">Запрещено использование нецензурной лексики в имени пользователя.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">1.2</span>
+                        <span class="rule-text">Запрещено указывать в профиле ссылки на сторонние ресурсы без разрешения администрации.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">1.3</span>
+                        <span class="rule-text">Запрещено выдавать себя за администратора или модератора форума.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">1.4</span>
+                        <span class="rule-text">Аватар не должен содержать оскорбительные, непристойные или шокирующие изображения.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">1.5</span>
+                        <span class="rule-text">Запрещена реклама сторонних проектов в подписи профиля.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">1.6</span>
+                        <span class="rule-text">Запрещено использование поддельных данных или чужой личности.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rules-accordion">
+                <div class="rules-accordion-header" data-target="publicationsList">
+                    <span class="rules-accordion-title">Публикации</span>
+                    <span class="rules-accordion-arrow">+</span>
+                </div>
+                <div class="rules-accordion-body" id="publicationsList">
+                    <div class="rule-item">
+                        <span class="rule-number">2.1</span>
+                        <span class="rule-text">Запрещено размещение материалов, нарушающих авторские права.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">2.2</span>
+                        <span class="rule-text">Запрещено разжигание межнациональной розни и политические дискуссии.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">2.3</span>
+                        <span class="rule-text">Запрещена реклама каких-либо инжекторов, читов и тому подобного.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">2.4</span>
+                        <span class="rule-text">Можно присылать только фотографию инжектора или GUI, с которой проводились взломы игр, но только замазав название.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">2.5</span>
+                        <span class="rule-text">Запрещён спам и флуд в темах обсуждений.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">2.6</span>
+                        <span class="rule-text">Запрещено создание одинаковых тем в разных разделах форума.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">2.7</span>
+                        <span class="rule-text">Запрещено публиковать личную информацию других пользователей без их согласия.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">2.8</span>
+                        <span class="rule-text">Запрещены оскорбления участников форума в любой форме.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rules-accordion">
+                <div class="rules-accordion-header" data-target="filesList">
+                    <span class="rules-accordion-title">Файлы</span>
+                    <span class="rules-accordion-arrow">+</span>
+                </div>
+                <div class="rules-accordion-body" id="filesList">
+                    <div class="rule-item">
+                        <span class="rule-number">3.1</span>
+                        <span class="rule-text">Запрещена загрузка файлов, содержащих порнографический, шокирующий или иной неприемлемый контент.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">3.2</span>
+                        <span class="rule-text">Запрещена загрузка файлов, рекламирующих сторонние проекты.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">3.3</span>
+                        <span class="rule-text">Запрещена загрузка материалов, нарушающих законодательство.</span>
+                    </div>
+                    <div class="rule-item">
+                        <span class="rule-number">3.4</span>
+                        <span class="rule-text">Запрещена загрузка файлов, нарушающих авторские права третьих лиц.</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="1x5oe.js"></script>
+    <script src="1x4oe.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await checkAuth();
+            const authButtons = document.getElementById('authButtons');
+            const userPanel = document.getElementById('userPanel');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (user) {
+                authButtons.style.display = 'none';
+                userPanel.style.display = 'flex';
+                usernameDisplay.textContent = user.username;
+                if ((user.role === 'admin' || user.role === 'owner') && !localStorage.getItem('hide_admin_badge')) {
+                    usernameDisplay.textContent += ' ⚔️';
+                }
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const token = localStorage.getItem('session_token');
+                    if (token) {
+                        await supabase.from('sessions').delete().eq('token', token);
+                    }
+                    localStorage.removeItem('session_token');
+                    window.location.href = '/index.html';
+                });
+            }
+
+            const accordionHeaders = document.querySelectorAll('.rules-accordion-header');
+            accordionHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const targetId = header.getAttribute('data-target');
+                    const body = document.getElementById(targetId);
+                    accordionHeaders.forEach(otherHeader => {
+                        if (otherHeader !== header) {
+                            otherHeader.classList.remove('open');
+                            const otherTargetId = otherHeader.getAttribute('data-target');
+                            const otherBody = document.getElementById(otherTargetId);
+                            if (otherBody) otherBody.classList.remove('open');
+                        }
+                    });
+                    header.classList.toggle('open');
+                    if (body) body.classList.toggle('open');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

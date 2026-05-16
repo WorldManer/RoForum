@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>RoForum · Админ-панель</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="logo-link">
+                <span class="logo-text">RoForum</span>
+            </a>
+            <a href="index.html" class="btn-top">Главная</a>
+            <a href="forums.html" class="btn-top">Форумы</a>
+            <a href="rules.html" class="btn-top">Правила</a>
+        </div>
+        <div class="topbar-right" id="userPanel">
+            <a href="profile.html" class="btn-top" id="usernameDisplay"></a>
+            <a href="settings-site.html" class="btn-top">Настройки</a>
+            <a href="#" class="btn-top" id="logoutBtn">Выйти</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <a href="admin.html" class="sidebar-item">Админ-панель</a>
+            <a href="forums.html" class="sidebar-item">Форумы</a>
+            <a href="settings-site.html" class="sidebar-item">Настройки</a>
+        </aside>
+
+        <main class="content">
+            <div class="admin-header">
+                <h1>Админ-панель</h1>
+                <p class="subtitle">Управление пользователями</p>
+            </div>
+
+            <div class="admin-search">
+                <input type="text" id="adminSearch" class="input-field" placeholder="Ник или ID пользователя">
+                <button id="searchUserBtn" class="btn-register">Найти</button>
+            </div>
+
+            <div id="adminResult"></div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="1x5oe.js"></script>
+    <script src="1x4oe.js"></script>
+    <script src="1x3oe.js"></script>
+    <script>
+        let adminCheckInterval;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await requireAdmin();
+            if (!user) return;
+
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            usernameDisplay.textContent = user.username + ' ⚔️';
+
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const token = localStorage.getItem('session_token');
+                    if (token) {
+                        await supabase.from('sessions').delete().eq('token', token);
+                    }
+                    localStorage.removeItem('session_token');
+                    window.location.href = '/index.html';
+                });
+            }
+
+            adminCheckInterval = setInterval(async () => {
+                const freshUser = await checkAuth();
+                if (!freshUser || (freshUser.role !== 'admin' && freshUser.role !== 'owner')) {
+                    window.location.href = '/index.html';
+                }
+            }, 1000);
+
+            document.getElementById('searchUserBtn').addEventListener('click', async () => {
+                const query = document.getElementById('adminSearch').value.trim();
+                if (!query) return;
+
+                let account;
+
+                if (!isNaN(query)) {
+                    const { data } = await supabase.from('accounts').select('*').eq('id', parseInt(query)).single();
+                    account = data;
+                } else {
+                    const { data } = await supabase.from('accounts').select('*').eq('username', query).single();
+                    account = data;
+                }
+
+                if (!account) {
+                    document.getElementById('adminResult').innerHTML = '<p>Пользователь не найден.</p>';
+                    return;
+                }
+
+                const { data: sessions } = await supabase.from('sessions').select('*').eq('account_id', account.id);
+                const { count: forumCount } = await supabase.from('forums').select('*', { count: 'exact' }).eq('author_id', account.id);
+
+                const createdDate = new Date(account.created_at);
+                const formattedDate = `${String(createdDate.getDate()).padStart(2, '0')}.${String(createdDate.getMonth() + 1).padStart(2, '0')}.${createdDate.getFullYear()}`;
+
+                document.getElementById('adminResult').innerHTML = `
+                    <div class="admin-user-card">
+                        <h2>${account.username} (ID: ${account.id})</h2>
+                        <p>IP: ${sessions.length > 0 ? sessions[0].ip_address : 'Нет данных'}</p>
+                        <p>HWID: ${sessions.length > 0 ? sessions[0].hwid : 'Нет данных'}</p>
+                        <p>Дата создания: ${formattedDate}</p>
+                        <p>Создано форумов: ${forumCount}</p>
+                        <p>Статус: ${account.banned ? 'Заблокирован' : 'Активен'}</p>
+                        ${account.banned ? `<p>Причина бана: ${account.ban_reason}</p><p>До: ${new Date(account.ban_end).toLocaleDateString('ru-RU')}</p>` : ''}
+
+                        <h3>Сессии (${sessions.length})</h3>
+                        ${sessions.map(s => `
+                            <div class="session-item">
+                                <span>IP: ${s.ip_address} · ${new Date(s.created_at).toLocaleDateString('ru-RU')}</span>
+                            </div>
+                        `).join('')}
+
+                        <div class="admin-actions">
+                            <button id="deactivateSessionsBtn" class="btn-register">Деактивировать все сессии</button>
+                            ${user.role === 'owner' ? `
+                                <button id="toggleAdminBtn" class="btn-register">
+                                    ${account.role === 'admin' ? 'Забрать права администратора' : 'Выдать права администратора'}
+                                </button>
+                                <button id="deleteAccountBtn" class="btn-register" style="background:#ff0000;border-color:#ff0000;">Удалить аккаунт</button>
+                            ` : ''}
+                            <button id="banUserBtn" class="btn-register" style="background:#ff0000;border-color:#ff0000;">
+                                ${account.banned ? 'Разбанить' : 'Забанить'}
+                            </button>
+                        </div>
+                        ${!account.banned ? `
+                            <div id="banForm" style="display:none;margin-top:1rem;">
+                                <input type="text" id="banReason" class="input-field" placeholder="Причина бана">
+                                <input type="date" id="banEnd" class="input-field">
+                                <button id="confirmBanBtn" class="btn-register">Подтвердить</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                document.getElementById('deactivateSessionsBtn').addEventListener('click', async () => {
+                    await supabase.from('sessions').delete().eq('account_id', account.id);
+                    alert('Все сессии деактивированы.');
+                    location.reload();
+                });
+
+                if (user.role === 'owner' && document.getElementById('toggleAdminBtn')) {
+                    document.getElementById('toggleAdminBtn').addEventListener('click', async () => {
+                        const newRole = account.role === 'admin' ? 'user' : 'admin';
+                        await supabase.from('accounts').update({ role: newRole }).eq('id', account.id);
+                        alert(`Права ${newRole === 'admin' ? 'выданы' : 'забраны'}.`);
+                        location.reload();
+                    });
+                }
+
+                if (user.role === 'owner' && document.getElementById('deleteAccountBtn')) {
+                    document.getElementById('deleteAccountBtn').addEventListener('click', async () => {
+                        if (confirm('Удалить аккаунт навсегда?')) {
+                            await supabase.from('accounts').delete().eq('id', account.id);
+                            alert('Аккаунт удалён.');
+                            location.reload();
+                        }
+                    });
+                }
+
+                const banUserBtn = document.getElementById('banUserBtn');
+                if (banUserBtn) {
+                    banUserBtn.addEventListener('click', async () => {
+                        if (account.banned) {
+                            await supabase.from('accounts').update({
+                                banned: false,
+                                ban_reason: null,
+                                ban_end: null
+                            }).eq('id', account.id);
+                            alert('Пользователь разбанен.');
+                            location.reload();
+                        } else {
+                            document.getElementById('banForm').style.display = 'block';
+                        }
+                    });
+                }
+
+                const confirmBanBtn = document.getElementById('confirmBanBtn');
+                if (confirmBanBtn) {
+                    confirmBanBtn.addEventListener('click', async () => {
+                        const reason = document.getElementById('banReason').value;
+                        const endDate = document.getElementById('banEnd').value;
+                        if (!reason || !endDate) {
+                            alert('Укажите причину и срок бана.');
+                            return;
+                        }
+                        await supabase.from('accounts').update({
+                            banned: true,
+                            ban_reason: reason,
+                            ban_end: new Date(endDate).toISOString()
+                        }).eq('id', account.id);
+                        await supabase.from('sessions').delete().eq('account_id', account.id);
+                        alert('Пользователь забанен.');
+                        location.reload();
+                    });
+                }
+            });
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (adminCheckInterval) clearInterval(adminCheckInterval);
+        });
+    </script>
+</body>
+</html>

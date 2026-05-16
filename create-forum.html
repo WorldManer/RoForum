@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>RoForum · Создать пост</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="logo-link">
+                <span class="logo-text">RoForum</span>
+            </a>
+            <a href="index.html" class="btn-top">Главная</a>
+            <a href="forums.html" class="btn-top">Форумы</a>
+            <a href="forums-top.html" class="btn-top">Топ</a>
+            <a href="rules.html" class="btn-top">Правила</a>
+        </div>
+        <div class="topbar-right" id="userPanel">
+            <a href="profile.html" class="btn-top" id="usernameDisplay"></a>
+            <a href="settings-site.html" class="btn-top">Настройки</a>
+            <a href="#" class="btn-top" id="logoutBtn">Выйти</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <a href="forums.html" class="sidebar-item">Все форумы</a>
+            <a href="forums-top.html" class="sidebar-item">Топ публикаций</a>
+            <a href="create-forum.html" class="sidebar-item">Создать пост</a>
+            <a href="settings-site.html" class="sidebar-item">Настройки</a>
+        </aside>
+
+        <main class="content">
+            <div class="register-header">
+                <h1>Создать пост</h1>
+                <p class="subtitle">Поделитесь с сообществом</p>
+            </div>
+
+            <form class="register-form" id="createForumForm">
+                <div class="input-group">
+                    <label>Тема (до 50 символов)</label>
+                    <input class="input-field" type="text" id="forumTitle" maxlength="50" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Текст (до 2000 символов)</label>
+                    <textarea class="input-field" id="forumContent" maxlength="2000" rows="6" required></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label>Ссылки на изображения (через запятую)</label>
+                    <input class="input-field" type="text" id="forumImages" placeholder="https://...">
+                </div>
+
+                <div class="input-group">
+                    <label>Теги (через запятую)</label>
+                    <input class="input-field" type="text" id="forumTags" placeholder="roblox, hack, gui">
+                </div>
+
+                <button class="btn-register" type="submit">Опубликовать</button>
+            </form>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="1x5oe.js"></script>
+    <script src="1x4oe.js"></script>
+    <script src="1x3oe.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await requireAuth();
+            if (!user) return;
+
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            usernameDisplay.textContent = user.username;
+            if (user.role === 'admin' || user.role === 'owner') {
+                usernameDisplay.textContent += ' ⚔️';
+            }
+
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const token = localStorage.getItem('session_token');
+                    if (token) {
+                        await supabase.from('sessions').delete().eq('token', token);
+                    }
+                    localStorage.removeItem('session_token');
+                    window.location.href = '/index.html';
+                });
+            }
+
+            document.getElementById('createForumForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (checkBanStatus(user)) return;
+
+                const title = document.getElementById('forumTitle').value.trim();
+                const content = document.getElementById('forumContent').value.trim();
+                const imagesRaw = document.getElementById('forumImages').value.trim();
+                const tagsRaw = document.getElementById('forumTags').value.trim();
+
+                const imageUrls = imagesRaw ? imagesRaw.split(',').map(s => s.trim()).filter(s => s) : [];
+                const tags = tagsRaw ? tagsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
+
+                try {
+                    await createForum(user.id, title, content, imageUrls, tags);
+                    window.location.href = '/forums.html';
+                } catch (err) {
+                    alert(err.message);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

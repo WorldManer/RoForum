@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>RoForum · Настройки</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="logo-link">
+                <span class="logo-text">RoForum</span>
+            </a>
+            <a href="index.html" class="btn-top">Главная</a>
+            <a href="forums.html" class="btn-top">Форумы</a>
+            <a href="forums-top.html" class="btn-top">Топ</a>
+            <a href="rules.html" class="btn-top">Правила</a>
+        </div>
+        <div class="topbar-right" id="authButtons">
+            <a href="login.html" class="btn-top">Войти</a>
+            <a href="register.html" class="btn-top">Регистрация</a>
+        </div>
+        <div class="topbar-right" id="userPanel" style="display:none;">
+            <a href="profile.html" class="btn-top" id="usernameDisplay"></a>
+            <a href="#" class="btn-top" id="logoutBtn">Выйти</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <a href="forums.html" class="sidebar-item">Форумы</a>
+            <a href="settings-site.html" class="sidebar-item">Настройки</a>
+            <a href="admin.html" class="sidebar-item" id="adminLink" style="display:none;">Админ-панель</a>
+        </aside>
+
+        <main class="content">
+            <div class="settings-header">
+                <h1>Настройки</h1>
+                <p class="subtitle">Настройте отображение сайта</p>
+            </div>
+
+            <div class="settings-group">
+                <div class="setting-row">
+                    <span class="setting-label">Тема</span>
+                    <div class="setting-control">
+                        <select id="themeSelect" class="input-field setting-select">
+                            <option value="light">Светлая</option>
+                            <option value="dark">Тёмная</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-register" id="applySettings" type="button">Применить</button>
+
+            <div id="adminSettings" style="display:none; margin-top: 2rem;">
+                <h2>Настройки администратора</h2>
+                <div class="setting-row">
+                    <span class="setting-label">Скрыть значок админа</span>
+                    <div class="setting-control">
+                        <input type="checkbox" id="hideAdminBadge">
+                    </div>
+                </div>
+                <button class="btn-register" id="saveAdminSettings" type="button">Сохранить</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="1x5oe.js"></script>
+    <script src="1x4oe.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await checkAuth();
+            const authButtons = document.getElementById('authButtons');
+            const userPanel = document.getElementById('userPanel');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const adminLink = document.getElementById('adminLink');
+            const adminSettings = document.getElementById('adminSettings');
+            const themeSelect = document.getElementById('themeSelect');
+
+            const savedTheme = localStorage.getItem('roforum_theme') || 'light';
+
+            function applyTheme(theme) {
+                if (theme === 'dark') {
+                    document.body.classList.add('dark');
+                } else {
+                    document.body.classList.remove('dark');
+                }
+                if (themeSelect) themeSelect.value = theme;
+            }
+
+            applyTheme(savedTheme);
+
+            document.getElementById('applySettings').addEventListener('click', () => {
+                const newTheme = themeSelect.value;
+                localStorage.setItem('roforum_theme', newTheme);
+                applyTheme(newTheme);
+            });
+
+            if (user) {
+                authButtons.style.display = 'none';
+                userPanel.style.display = 'flex';
+                usernameDisplay.textContent = user.username;
+                if ((user.role === 'admin' || user.role === 'owner') && !localStorage.getItem('hide_admin_badge')) {
+                    usernameDisplay.textContent += ' ⚔️';
+                }
+
+                if (user.role === 'admin' || user.role === 'owner') {
+                    adminLink.style.display = 'block';
+                    adminSettings.style.display = 'block';
+
+                    const hideBadge = localStorage.getItem('hide_admin_badge') === 'true';
+                    document.getElementById('hideAdminBadge').checked = hideBadge;
+
+                    document.getElementById('saveAdminSettings').addEventListener('click', () => {
+                        const hide = document.getElementById('hideAdminBadge').checked;
+                        localStorage.setItem('hide_admin_badge', hide);
+                        alert('Настройки сохранены.');
+                        location.reload();
+                    });
+                }
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const token = localStorage.getItem('session_token');
+                    if (token) {
+                        await supabase.from('sessions').delete().eq('token', token);
+                    }
+                    localStorage.removeItem('session_token');
+                    window.location.href = '/index.html';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

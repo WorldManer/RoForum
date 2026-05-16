@@ -2,7 +2,7 @@ async function createForum(authorId, title, content, imageUrls = [], tags = []) 
     if (title.length > 50) throw new Error('Тема не может превышать 50 символов');
     if (content.length > 2000) throw new Error('Текст не может превышать 2000 символов');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('forums')
         .insert({
             author_id: authorId,
@@ -22,7 +22,7 @@ async function getForums(page = 1, limit = 20) {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    const { data, error, count } = await supabase
+    const { data, error, count } = await supabaseClient
         .from('forums')
         .select('*, accounts(username, role)', { count: 'exact' })
         .order('created_at', { ascending: false })
@@ -33,7 +33,7 @@ async function getForums(page = 1, limit = 20) {
 }
 
 async function getRecentForums(limit = 5) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('forums')
         .select('*, accounts(username, role)')
         .order('created_at', { ascending: false })
@@ -44,7 +44,7 @@ async function getRecentForums(limit = 5) {
 }
 
 async function getForumById(id) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('forums')
         .select('*, accounts(username, role)')
         .eq('id', id)
@@ -55,7 +55,7 @@ async function getForumById(id) {
 }
 
 async function searchForums(query) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('forums')
         .select('*, accounts(username, role)')
         .or(`title.ilike.%${query}%,tags.cs.{${query}}`)
@@ -66,7 +66,7 @@ async function searchForums(query) {
 }
 
 async function deleteForum(forumId) {
-    const { error } = await supabase
+    const { error } = await supabaseClient
         .from('forums')
         .delete()
         .eq('id', forumId);
@@ -75,7 +75,7 @@ async function deleteForum(forumId) {
 }
 
 async function createComment(forumId, authorId, content) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('comments')
         .insert({
             forum_id: forumId,
@@ -90,7 +90,7 @@ async function createComment(forumId, authorId, content) {
 }
 
 async function getComments(forumId) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('comments')
         .select('*, accounts(username, role)')
         .eq('forum_id', forumId)
@@ -101,7 +101,7 @@ async function getComments(forumId) {
 }
 
 async function deleteComment(commentId) {
-    const { error } = await supabase
+    const { error } = await supabaseClient
         .from('comments')
         .delete()
         .eq('id', commentId);
@@ -110,7 +110,7 @@ async function deleteComment(commentId) {
 }
 
 async function likeForum(forumId, accountId) {
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseClient
         .from('likes')
         .select()
         .eq('forum_id', forumId)
@@ -118,14 +118,14 @@ async function likeForum(forumId, accountId) {
         .single();
 
     if (existing) {
-        await supabase
+        await supabaseClient
             .from('likes')
             .delete()
             .eq('forum_id', forumId)
             .eq('account_id', accountId);
         return false;
     } else {
-        await supabase
+        await supabaseClient
             .from('likes')
             .insert({ forum_id: forumId, account_id: accountId });
         return true;
@@ -133,7 +133,7 @@ async function likeForum(forumId, accountId) {
 }
 
 async function getLikesCount(forumId) {
-    const { count, error } = await supabase
+    const { count, error } = await supabaseClient
         .from('likes')
         .select('*', { count: 'exact' })
         .eq('forum_id', forumId);
@@ -143,7 +143,7 @@ async function getLikesCount(forumId) {
 }
 
 async function getAccountCount() {
-    const { count, error } = await supabase
+    const { count, error } = await supabaseClient
         .from('accounts')
         .select('*', { count: 'exact' });
 
@@ -152,7 +152,7 @@ async function getAccountCount() {
 }
 
 async function getProfile(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('accounts')
         .select('*')
         .eq('id', userId)
@@ -163,7 +163,7 @@ async function getProfile(userId) {
 }
 
 async function getForumsByUser(userId) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
         .from('forums')
         .select('*')
         .eq('author_id', userId)

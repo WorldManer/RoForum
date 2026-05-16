@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>RoForum · Вход</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="logo-link">
+                <span class="logo-text">RoForum</span>
+            </a>
+            <a href="index.html" class="btn-top">Главная</a>
+            <a href="forums.html" class="btn-top">Форумы</a>
+            <a href="forums-top.html" class="btn-top">Топ</a>
+            <a href="rules.html" class="btn-top">Правила</a>
+        </div>
+        <div class="topbar-right">
+            <a href="register.html" class="btn-top">Регистрация</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <a href="forums.html" class="sidebar-item">Форумы</a>
+            <a href="settings-site.html" class="sidebar-item">Настройки</a>
+        </aside>
+
+        <main class="content">
+            <div class="register-header">
+                <h1>Вход</h1>
+                <p class="subtitle">Войдите в свою учётную запись</p>
+            </div>
+
+            <div id="bannedMessage" style="display:none; color: #ff0000; font-weight: 700; margin-bottom: 1rem;"></div>
+
+            <form class="register-form" id="loginForm">
+                <div class="input-group">
+                    <label>Имя пользователя или Email</label>
+                    <input class="input-field" type="text" id="loginUsername" placeholder="Введите имя" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Пароль</label>
+                    <input class="input-field" type="password" id="loginPassword" placeholder="Введите пароль" required>
+                </div>
+
+                <div class="checkbox-row">
+                    <input type="checkbox" id="remember">
+                    <label for="remember">Запомнить меня</label>
+                </div>
+
+                <button class="btn-register" type="submit">Войти</button>
+
+                <div class="alt-action">
+                    Нет аккаунта? <a href="register.html">Зарегистрироваться</a>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="1x5oe.js"></script>
+    <script src="1x4oe.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('banned') === '1') {
+                const bannedMsg = document.getElementById('bannedMessage');
+                bannedMsg.style.display = 'block';
+                bannedMsg.textContent = 'Аккаунт заблокирован.';
+            }
+
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const login = document.getElementById('loginUsername').value.trim();
+                const password = document.getElementById('loginPassword').value;
+
+                const { data: account, error } = await supabase
+                    .from('accounts')
+                    .select('*')
+                    .eq('username', login)
+                    .single();
+
+                if (error || !account) {
+                    alert('Неверный логин или пароль.');
+                    return;
+                }
+
+                if (account.banned) {
+                    const bannedMsg = document.getElementById('bannedMessage');
+                    bannedMsg.style.display = 'block';
+                    bannedMsg.textContent = `Аккаунт заблокирован.\nПричина: ${account.ban_reason}\nДо: ${new Date(account.ban_end).toLocaleDateString('ru-RU')}`;
+                    return;
+                }
+
+                const passwordHash = btoa(password);
+                if (passwordHash !== account.password_hash) {
+                    alert('Неверный логин или пароль.');
+                    return;
+                }
+
+                const ip = await getIP();
+                const hwid = getHWID();
+                const token = crypto.randomUUID();
+
+                await supabase.from('sessions').insert({
+                    account_id: account.id,
+                    token,
+                    ip_address: ip,
+                    hwid
+                });
+
+                localStorage.setItem('session_token', token);
+                window.location.href = '/index.html';
+            });
+        });
+    </script>
+</body>
+</html>

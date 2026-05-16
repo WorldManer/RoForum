@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>RoForum · Форумы</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="logo-link">
+                <span class="logo-text">RoForum</span>
+            </a>
+            <a href="index.html" class="btn-top">Главная</a>
+            <a href="forums.html" class="btn-top">Форумы</a>
+            <a href="forums-top.html" class="btn-top">Топ</a>
+            <a href="rules.html" class="btn-top">Правила</a>
+        </div>
+        <div class="topbar-right" id="authButtons">
+            <a href="login.html" class="btn-top">Войти</a>
+            <a href="register.html" class="btn-top">Регистрация</a>
+        </div>
+        <div class="topbar-right" id="userPanel" style="display:none;">
+            <a href="profile.html" class="btn-top" id="usernameDisplay"></a>
+            <a href="settings-site.html" class="btn-top">Настройки</a>
+            <a href="#" class="btn-top" id="logoutBtn">Выйти</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <a href="forums.html" class="sidebar-item">Все форумы</a>
+            <a href="forums-top.html" class="sidebar-item">Топ публикаций</a>
+            <a href="create-forum.html" class="sidebar-item">Создать пост</a>
+            <a href="settings-site.html" class="sidebar-item">Настройки</a>
+        </aside>
+
+        <main class="content">
+            <div class="forums-header">
+                <h1>Форумы</h1>
+                <p class="subtitle">Все публикации сообщества</p>
+                <div class="search-box" style="margin: 1rem 0;">
+                    <input type="text" id="searchInput" class="input-field" placeholder="Поиск по названию или тегам...">
+                </div>
+            </div>
+
+            <div id="forumsList" class="forums-list"></div>
+            <div id="pagination" class="pagination"></div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="1x5oe.js"></script>
+    <script src="1x4oe.js"></script>
+    <script src="1x3oe.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const user = await checkAuth();
+            const authButtons = document.getElementById('authButtons');
+            const userPanel = document.getElementById('userPanel');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (user) {
+                authButtons.style.display = 'none';
+                userPanel.style.display = 'flex';
+                usernameDisplay.textContent = user.username;
+                if (user.role === 'admin' || user.role === 'owner') {
+                    usernameDisplay.textContent += ' ⚔️';
+                }
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const token = localStorage.getItem('session_token');
+                    if (token) {
+                        await supabase.from('sessions').delete().eq('token', token);
+                    }
+                    localStorage.removeItem('session_token');
+                    window.location.href = '/index.html';
+                });
+            }
+
+            let currentPage = 1;
+
+            async function loadForums(page = 1) {
+                const { forums, total } = await getForums(page);
+                const container = document.getElementById('forumsList');
+                const pagination = document.getElementById('pagination');
+
+                if (forums.length === 0) {
+                    container.innerHTML = '<p>Публикаций пока нет.</p>';
+                    pagination.innerHTML = '';
+                    return;
+                }
+
+                container.innerHTML = '';
+                forums.forEach(forum => {
+                    const card = document.createElement('div');
+                    card.className = 'forum-card';
+                    card.innerHTML = `
+                        <h3><a href="forum-post.html?id=${forum.id}">${forum.title}</a></h3>
+                        <p class="forum-meta">
+                            Автор: <a href="profile.html?id=${forum.author_id}">${forum.accounts.username}${forum.accounts.role === 'admin' || forum.accounts.role === 'owner' ? ' ⚔️' : ''}</a>
+                            · ${new Date(forum.created_at).toLocaleDateString('ru-RU')}
+                        </p>
+                        <p class="forum-preview">${forum.content.substring(0, 200)}${forum.content.length > 200 ? '...' : ''}</p>
+                        ${forum.tags && forum.tags.length > 0 ? `<div class="forum-tags">${forum.tags.map(tag => `<span class="tag">#${tag}</span>`).join(' ')}</div>` : ''}
+                    `;
+                    container.appendChild(card);
+                });
+
+                const totalPages = Math.ceil(total / 20);
+                pagination.innerHTML = '';
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('button');
+                    btn.textContent = i;
+                    btn.className = 'pagination-btn';
+                    if (i === page) btn.classList.add('active');
+                    btn.addEventListener('click', () => {
+                        currentPage = i;
+                        loadForums(i);
+                    });
+                    pagination.appendChild(btn);
+                }
+            }
+
+            loadForums();
+
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', async () => {
+                    const query = searchInput.value.trim();
+                    if (query.length === 0) {
+                        loadForums();
+                        return;
+                    }
+                    const results = await searchForums(query);
+                    const container = document.getElementById('forumsList');
+                    const pagination = document.getElementById('pagination');
+                    pagination.innerHTML = '';
+
+                    if (results.length === 0) {
+                        container.innerHTML = '<p>Ничего не найдено.</p>';
+                        return;
+                    }
+
+                    container.innerHTML = '';
+                    results.forEach(forum => {
+                        const card = document.createElement('div');
+                        card.className = 'forum-card';
+                        card.innerHTML = `
+                            <h3><a href="forum-post.html?id=${forum.id}">${forum.title}</a></h3>
+                            <p class="forum-meta">
+                                Автор: <a href="profile.html?id=${forum.author_id}">${forum.accounts.username}${forum.accounts.role === 'admin' || forum.accounts.role === 'owner' ? ' ⚔️' : ''}</a>
+                                · ${new Date(forum.created_at).toLocaleDateString('ru-RU')}
+                            </p>
+                            <p class="forum-preview">${forum.content.substring(0, 200)}${forum.content.length > 200 ? '...' : ''}</p>
+                        `;
+                        container.appendChild(card);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>RoForum · Регистрация</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="logo-link">
+                <span class="logo-text">RoForum</span>
+            </a>
+            <a href="index.html" class="btn-top">Главная</a>
+            <a href="forums.html" class="btn-top">Форумы</a>
+            <a href="forums-top.html" class="btn-top">Топ</a>
+            <a href="rules.html" class="btn-top">Правила</a>
+        </div>
+        <div class="topbar-right">
+            <a href="login.html" class="btn-top">Войти</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <a href="forums.html" class="sidebar-item">Форумы</a>
+            <a href="settings-site.html" class="sidebar-item">Настройки</a>
+        </aside>
+
+        <main class="content">
+            <div class="register-header">
+                <h1>Регистрация</h1>
+                <p class="subtitle">Создайте учётную запись RoForum</p>
+            </div>
+
+            <form class="register-form" id="registerForm">
+                <div class="input-group">
+                    <label>Дата рождения</label>
+                    <div class="birthday-row">
+                        <select class="input-field birthday-select" id="month" required>
+                            <option value="">Месяц</option>
+                            <option value="1">Январь</option>
+                            <option value="2">Февраль</option>
+                            <option value="3">Март</option>
+                            <option value="4">Апрель</option>
+                            <option value="5">Май</option>
+                            <option value="6">Июнь</option>
+                            <option value="7">Июль</option>
+                            <option value="8">Август</option>
+                            <option value="9">Сентябрь</option>
+                            <option value="10">Октябрь</option>
+                            <option value="11">Ноябрь</option>
+                            <option value="12">Декабрь</option>
+                        </select>
+                        <select class="input-field birthday-select" id="day" required>
+                            <option value="">День</option>
+                        </select>
+                        <select class="input-field birthday-select" id="year" required>
+                            <option value="">Год</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Имя пользователя</label>
+                    <input class="input-field" type="text" id="regUsername" placeholder="Не используйте настоящее имя" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Пароль</label>
+                    <input class="input-field" type="password" id="regPassword" placeholder="Не менее 8 символов" required>
+                </div>
+
+                <p class="agreement-text">Нажимая «Зарегистрироваться», вы подтверждаете ознакомление и согласие с <a href="rules.html">правилами RoForum</a>.</p>
+
+                <button class="btn-register" type="submit">Зарегистрироваться</button>
+
+                <div class="alt-action">
+                    Уже есть аккаунт? <a href="login.html">Войти</a>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="1x5oe.js"></script>
+    <script src="1x4oe.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const daySelect = document.getElementById('day');
+            const monthSelect = document.getElementById('month');
+            const yearSelect = document.getElementById('year');
+
+            function populateDays() {
+                const month = parseInt(monthSelect.value);
+                const year = parseInt(yearSelect.value);
+                const currentDay = daySelect.value;
+                daySelect.innerHTML = '<option value="">День</option>';
+                if (!month) return;
+                let daysInMonth = 31;
+                if (month === 4 || month === 6 || month === 9 || month === 11) {
+                    daysInMonth = 30;
+                } else if (month === 2) {
+                    if (year && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)) {
+                        daysInMonth = 29;
+                    } else {
+                        daysInMonth = 28;
+                    }
+                }
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = i;
+                    if (currentDay == i) option.selected = true;
+                    daySelect.appendChild(option);
+                }
+            }
+
+            function populateYears() {
+                const currentYear = new Date().getFullYear();
+                yearSelect.innerHTML = '<option value="">Год</option>';
+                for (let i = currentYear; i >= 1927; i--) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = i;
+                    yearSelect.appendChild(option);
+                }
+            }
+
+            populateYears();
+            populateDays();
+            monthSelect.addEventListener('change', populateDays);
+            yearSelect.addEventListener('change', populateDays);
+
+            document.getElementById('registerForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('regUsername').value.trim();
+                const password = document.getElementById('regPassword').value;
+
+                if (!validateUsername(username)) {
+                    alert('Ник должен быть от 4 до 15 символов и содержать только буквы, цифры и подчёркивания.');
+                    return;
+                }
+
+                if (password.length < 8) {
+                    alert('Пароль должен быть не менее 8 символов.');
+                    return;
+                }
+
+                const { data: existing } = await supabase
+                    .from('accounts')
+                    .select('id')
+                    .eq('username', username)
+                    .single();
+
+                if (existing) {
+                    alert('Пользователь с таким ником уже существует.');
+                    return;
+                }
+
+                const passwordHash = btoa(password);
+                const { data: account, error } = await supabase
+                    .from('accounts')
+                    .insert({
+                        username,
+                        password_hash: passwordHash,
+                        role: 'user'
+                    })
+                    .select()
+                    .single();
+
+                if (error) {
+                    alert('Ошибка при регистрации.');
+                    return;
+                }
+
+                const ip = await getIP();
+                const hwid = getHWID();
+                const token = crypto.randomUUID();
+
+                await supabase.from('sessions').insert({
+                    account_id: account.id,
+                    token,
+                    ip_address: ip,
+                    hwid
+                });
+
+                localStorage.setItem('session_token', token);
+                window.location.href = '/index.html';
+            });
+        });
+    </script>
+</body>
+</html>

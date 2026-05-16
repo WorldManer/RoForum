@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>RoForum · Профиль</title>
+    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <a href="index.html" class="logo-link">
+                <span class="logo-text">RoForum</span>
+            </a>
+            <a href="index.html" class="btn-top">Главная</a>
+            <a href="forums.html" class="btn-top">Форумы</a>
+            <a href="forums-top.html" class="btn-top">Топ</a>
+            <a href="rules.html" class="btn-top">Правила</a>
+        </div>
+        <div class="topbar-right" id="authButtons">
+            <a href="login.html" class="btn-top">Войти</a>
+            <a href="register.html" class="btn-top">Регистрация</a>
+        </div>
+        <div class="topbar-right" id="userPanel" style="display:none;">
+            <a href="profile.html" class="btn-top" id="usernameDisplay"></a>
+            <a href="settings-site.html" class="btn-top">Настройки</a>
+            <a href="#" class="btn-top" id="logoutBtn">Выйти</a>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <a href="forums.html" class="sidebar-item">Все форумы</a>
+            <a href="forums-top.html" class="sidebar-item">Топ публикаций</a>
+            <a href="create-forum.html" class="sidebar-item">Создать пост</a>
+            <a href="settings-site.html" class="sidebar-item">Настройки</a>
+        </aside>
+
+        <main class="content">
+            <div id="profileContent"></div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="1x5oe.js"></script>
+    <script src="1x4oe.js"></script>
+    <script src="1x3oe.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const currentUser = await checkAuth();
+            const authButtons = document.getElementById('authButtons');
+            const userPanel = document.getElementById('userPanel');
+            const usernameDisplay = document.getElementById('usernameDisplay');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (currentUser) {
+                authButtons.style.display = 'none';
+                userPanel.style.display = 'flex';
+                usernameDisplay.textContent = currentUser.username;
+                if (currentUser.role === 'admin' || currentUser.role === 'owner') {
+                    usernameDisplay.textContent += ' ⚔️';
+                }
+            }
+
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const token = localStorage.getItem('session_token');
+                    if (token) {
+                        await supabase.from('sessions').delete().eq('token', token);
+                    }
+                    localStorage.removeItem('session_token');
+                    window.location.href = '/index.html';
+                });
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const profileId = params.get('id') || (currentUser ? currentUser.id : null);
+
+            if (!profileId) {
+                document.getElementById('profileContent').innerHTML = '<p>Профиль не найден.</p>';
+                return;
+            }
+
+            const profile = await getProfile(profileId);
+            const forums = await getForumsByUser(profileId);
+
+            const container = document.getElementById('profileContent');
+
+            const createdDate = new Date(profile.created_at);
+            const formattedDate = `${String(createdDate.getDate()).padStart(2, '0')}.${String(createdDate.getMonth() + 1).padStart(2, '0')}.${createdDate.getFullYear()}`;
+
+            container.innerHTML = `
+                <div class="profile-header">
+                    <i class="fas fa-user" style="font-size:4rem;color:${profile.avatar_color || '#808080'};"></i>
+                    <h1>${profile.username}${profile.role === 'admin' || profile.role === 'owner' ? ' ⚔️' : ''}</h1>
+                    <p>Дата регистрации: ${formattedDate}</p>
+                </div>
+
+                ${currentUser && currentUser.id == profileId ? `
+                    <div class="profile-settings">
+                        <h2>Сменить пароль</h2>
+                        <input type="password" id="newPassword" class="input-field" placeholder="Новый пароль">
+                        <button id="changePasswordBtn" class="btn-register">Сменить</button>
+
+                        <h2>Мои сессии</h2>
+                        <div id="sessionsList"></div>
+                    </div>
+                ` : ''}
+
+                <div class="profile-forums">
+                    <h2>Посты пользователя (${forums.length})</h2>
+                    ${forums.map(f => `
+                        <div class="forum-card">
+                            <h3><a href="forum-post.html?id=${f.id}">${f.title}</a></h3>
+                            <p>${f.content.substring(0, 100)}...</p>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            if (currentUser && currentUser.id == profileId) {
+                document.getElementById('changePasswordBtn').addEventListener('click', async () => {
+                    const newPassword = document.getElementById('newPassword').value;
+                    if (newPassword.length < 8) {
+                        alert('Пароль должен быть не менее 8 символов.');
+                        return;
+                    }
+                    if (!canChangePassword(profile.last_password_change)) {
+                        alert('Пароль можно менять раз в 24 часа.');
+                        return;
+                    }
+                    const passwordHash = btoa(newPassword);
+                    await supabase.from('accounts').update({
+                        password_hash: passwordHash,
+                        last_password_change: new Date().toISOString()
+                    }).eq('id', profileId);
+                    alert('Пароль изменён.');
+                });
+
+                const { data: sessions } = await supabase.from('sessions').select('*').eq('account_id', profileId);
+                const sessionsList = document.getElementById('sessionsList');
+                sessionsList.innerHTML = sessions.map(s => `
+                    <div class="session-item">
+                        <span>IP: ${s.ip_address} · ${new Date(s.created_at).toLocaleDateString('ru-RU')}</span>
+                        <button class="kickSessionBtn" data-id="${s.id}">Завершить</button>
+                    </div>
+                `).join('');
+
+                document.querySelectorAll('.kickSessionBtn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const password = prompt('Введите пароль для подтверждения:');
+                        const passwordHash = btoa(password);
+                        if (passwordHash !== currentUser.password_hash) {
+                            alert('Неверный пароль.');
+                            return;
+                        }
+                        const sessionId = btn.getAttribute('data-id');
+                        await supabase.from('sessions').delete().eq('id', sessionId);
+                        location.reload();
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
